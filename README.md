@@ -24,6 +24,7 @@ Test the system’s accuracy and functionality regularly.
 
 # Project Personnel:
 Simeon Maximin
+
 Responsible for:
 Hardware setup and scanner integration.
 Software and database development.
