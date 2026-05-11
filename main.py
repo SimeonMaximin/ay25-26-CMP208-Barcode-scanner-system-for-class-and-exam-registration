@@ -3,6 +3,7 @@ import os
 from dotenv import load_dotenv
 import tkinter as tk
 from tkinter import messagebox
+from tkinter import ttk
 
 load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -62,10 +63,10 @@ class UI(object):
     
     def get_classes(self):
         # GEt the list of all the classes that the teacher is teaching
-        response = database.table("classes").select("name").eq("teacher", self.active_user).execute()
+        response = database.table("classes").select("class_name").eq("teacher_id", self.active_userid).execute()
         if not response.data:
             return []
-        return [class_['class name'] for class_ in response.data]
+        return [class_['class_name'] for class_ in response.data]
 
     def build_main_screen(self):
         self.main_screen.pack(fill="both", expand=True)
@@ -88,7 +89,7 @@ class UI(object):
         classes = self.get_classes()
         self.selected_class = tk.StringVar()
 
-        self.class_dropdown = tk.Combobox(
+        self.class_dropdown = ttk.Combobox(
             self.main_screen,
             textvariable=self.selected_class,
             values=classes,
