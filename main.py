@@ -1,9 +1,11 @@
-from supabase import create_client
-import os
-from dotenv import load_dotenv
+from supabase import create_client #importance 1
 import tkinter as tk
 from tkinter import messagebox
 from tkinter import ttk
+
+import os #importance 4 good practice to import os for environment variables
+from dotenv import load_dotenv #importance 4 to load environment variables from .env file
+
 
 load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -20,7 +22,7 @@ class UI(object):
         self.main_screen = tk.Frame(self.root)
         self.root.title("Registration System Login")
         self.root.geometry("400x300")
-        
+
     def login(self):
         username = self.username_entry.get()
         response = database.table("teachers").select("password").eq("name", username).execute()
@@ -38,54 +40,59 @@ class UI(object):
             self.build_main_screen()
         else:
             messagebox.showerror("Error", "Invalid password")
-    
-    def build_login_screen(self):
-        # Username label
-        self.login_screen.pack(fill="both", expand=True)
-        self.username_label = tk.Label(self.login_screen, text="Username")
-        self.username_label.pack(pady=5)
 
-        # Username input
+    def build_login_screen(self):
+        self.login_screen.pack(fill="both", expand=True)
+
+        tk.Label(self.login_screen, text="Username").pack(pady=5)
         self.username_entry = tk.Entry(self.login_screen)
         self.username_entry.pack(pady=5)
 
-        # Password label
-        self.password_label = tk.Label(self.login_screen, text="Password")
-        self.password_label.pack(pady=5)
-
-        # Password input
+        tk.Label(self.login_screen, text="Password").pack(pady=5)
         self.password_entry = tk.Entry(self.login_screen, show="*")
         self.password_entry.pack(pady=5)
 
-        # Login button
-        login_button = tk.Button(self.login_screen, text="Login", command=self.login)
-        login_button.pack(pady=20)
-    
+        tk.Button(self.login_screen, text="Login", command=self.login).pack(pady=20)
+
     def get_classes(self):
-        # GEt the list of all the classes that the teacher is teaching
         response = database.table("classes").select("class_name").eq("teacher_id", self.active_userid).execute()
         if not response.data:
             return []
-        return [class_['class_name'] for class_ in response.data]
+        return [c['class_name'] for c in response.data]
+
+    def load_students(self, event=None):
+        selected_class = self.selected_class.get()
+        if not selected_class:
+            return
+
+        # Get the class_id for the selected class name
+        response = database.table("classes").select("id").eq("class_name", selected_class).execute()
+        if not response.data:
+            return
+        class_id = response.data[0]['id']
+
+        # Fetch students in that class
+        response = database.table("students").select("barcode", "student_name", "email").eq("class_id", class_id).execute()
+
+        # Clear existing rows
+        for row in self.student_table.get_children():
+            self.student_table.delete(row)
+
+        # Populate table — barcode maps to "Student ID" column
+        for student in response.data:
+            self.student_table.insert("", tk.END, values=(
+                student['barcode'],
+                student['student_name'],
+                student['email']
+            ))
 
     def build_main_screen(self):
         self.main_screen.pack(fill="both", expand=True)
-         # ---------------- TITLE ----------------
-        self.title = tk.Label(
-            self.main_screen,
-            text="Class Dashboard",
-            font=("Arial", 16)
-        )
-        self.title.pack(pady=10)
 
-        # ---------------- CLASS DROPDOWN ----------------
-        class_label = tk.Label(
-            self.main_screen,
-            text="Select Class"
-        )
-        class_label.pack()
+        tk.Label(self.main_screen, text="Class Dashboard", font=("Arial", 16)).pack(pady=10)
 
-        # Example class list
+        tk.Label(self.main_screen, text="Select Class").pack()
+
         classes = self.get_classes()
         self.selected_class = tk.StringVar()
 
@@ -96,26 +103,31 @@ class UI(object):
             state="readonly"
         )
         self.class_dropdown.pack(pady=10)
-        
+
+        # Table — "Student ID" header maps to barcode column
+        self.student_table = ttk.Treeview(
+            self.main_screen,
+            columns=("Student ID", "Name", "Email"),
+            show="headings",
+            height=10
+        )
+
+        self.student_table.heading("Student ID", text="Student ID")
+        self.student_table.heading("Name", text="Name")
+        self.student_table.heading("Email", text="Email")
+
+        self.student_table.column("Student ID", width=100)
+        self.student_table.column("Name", width=150)
+        self.student_table.column("Email", width=250)
+
+        self.student_table.pack(pady=10)
+
+        self.class_dropdown.bind("<<ComboboxSelected>>", self.load_students)
 
     def run(self):
         self.build_login_screen()
         self.root.mainloop()
 
+
 ui = UI()
 ui.run()
-
-
-def load_students(self, event):
-
-    selected_class = self.selected_class.get()
-
-    # Clear existing rows
-    for row in self.student_table.get_children():
-        self.student_table.delete(row)
-
-    # Add new rows
-    students = self.class_students[selected_class]
-
-    for student in students:
-        self.student_table.insert("", tk.END, values=student)
